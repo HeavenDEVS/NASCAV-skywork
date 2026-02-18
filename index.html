@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nascav Lightworks - AI Creative Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap');
+
+        :root {
+            --sky-blue: #38bdf8;
+            --deep-space: #020617;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--deep-space);
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: white;
+        }
+
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Interactive Intro Layer */
+        #intro-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, rgba(2, 6, 23, 0) 0%, rgba(2, 6, 23, 1) 100%);
+            transition: opacity 1.5s ease-in-out, visibility 1.5s;
+        }
+
+        .hero-title {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            letter-spacing: 0.5em;
+            text-transform: uppercase;
+            text-align: center;
+            background: linear-gradient(to bottom, #fff 30%, var(--sky-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 30px rgba(56, 189, 248, 0.4));
+            animation: titleEntrance 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes titleEntrance {
+            0% { opacity: 0; transform: scale(0.9) translateY(30px); letter-spacing: 1em; }
+            100% { opacity: 1; transform: scale(1) translateY(0); letter-spacing: 0.5em; }
+        }
+
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--sky-blue), transparent);
+            top: -10%;
+            left: 0;
+            opacity: 0.5;
+            animation: scan 4s linear infinite;
+            z-index: 101;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            0% { top: -10%; }
+            100% { top: 110%; }
+        }
+
+        .enter-btn {
+            margin-top: 4rem;
+            padding: 1rem 3rem;
+            border: 1px solid rgba(56, 189, 248, 0.5);
+            background: rgba(56, 189, 248, 0.05);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 0.3em;
+            color: var(--sky-blue);
+            cursor: pointer;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(5px);
+        }
+
+        .enter-btn:hover {
+            background: var(--sky-blue);
+            color: black;
+            box-shadow: 0 0 40px rgba(56, 189, 248, 0.6);
+        }
+
+        /* Main Layout Styles */
+        .main-layout {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 1s ease-out;
+        }
+
+        .main-layout.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .logo-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            padding: 0 2rem;
+        }
+
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 0.3em;
+            text-shadow: 0 0 25px rgba(56, 189, 248, 0.6);
+            text-align: center;
+        }
+
+        .tagline {
+            color: #94a3b8;
+            font-size: 0.7rem;
+            letter-spacing: 1.2em;
+            margin-top: 1.5rem;
+            text-transform: uppercase;
+        }
+
+        .ai-panel {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            pointer-events: auto;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        .btn-action {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .btn-action:hover:not(:disabled) {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: #0ea5e9;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+        }
+
+        .image-preview {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .loader {
+            width: 20px; height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .image-preview img { width: 100%; height: 100%; object-fit: cover; }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+    <div class="scan-line"></div>
+
+    <!-- Intro Interaction -->
+    <div id="intro-overlay">
+        <h1 class="hero-title text-5xl md:text-8xl">Nascav</h1>
+        <p class="text-sky-400 font-light tracking-[1em] mt-4 uppercase text-xs md:text-sm">Lightworks Systems</p>
+        <button class="enter-btn" onclick="enterExperience()">Initialize Core</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-layout" id="mainLayout">
+        <div class="logo-section">
+            <h1 class="logo-text text-3xl md:text-5xl lg:text-7xl font-bold uppercase">Nascav Lightworks</h1>
+            <p class="tagline">Innovation in the sky</p>
+        </div>
+
+        <div class="ai-panel">
+            <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                <div class="space-y-6">
+                    <div>
+                        <h2 class="text-xs font-bold text-sky-400 uppercase tracking-widest mb-3">Project Command Center</h2>
+                        <input id="conceptInput" type="text" placeholder="What are we lighting up? (e.g. A New Year's Gala in Dubai)" 
+                               class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="visualizeConcept()" id="vizBtn" class="btn-primary py-3 rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">
+                            ✨ Visualize Sky
+                        </button>
+                        <button onclick="generateFunFacts()" id="factsBtn" class="btn-action py-3 rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">
+                            ✨ Drone Fun Facts
+                        </button>
+                        <button onclick="generateSpecs()" id="specsBtn" class="btn-action py-3 rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">
+                            ✨ Tech Specs
+                        </button>
+                        <button onclick="generateAdCopy()" id="copyBtn" class="btn-action py-3 rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">
+                            ✨ Marketing Copy
+                        </button>
+                        <button onclick="generateVoiceover()" id="voiceBtn" class="btn-action py-3 rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2 col-span-2">
+                            ✨ Hear The Vision (Audio)
+                        </button>
+                    </div>
+
+                    <div id="outputContainer" class="hidden h-48 bg-black/40 border border-slate-800 rounded-xl p-4 overflow-y-auto text-sm">
+                        <div id="outputText" class="text-slate-300 whitespace-pre-wrap leading-relaxed"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h2 class="text-xs font-bold text-sky-400 uppercase tracking-widest">Live Storyboard Frame</h2>
+                    <div id="imageFrame" class="image-preview">
+                        <p id="imageStatus" class="text-slate-500 text-xs italic">Awaiting creative command...</p>
+                        <div id="imageLoader" class="hidden"><div class="loader"></div></div>
+                        <img id="generatedImg" class="hidden" alt="AI Generated Concept">
+                    </div>
+                    <p class="text-[10px] text-slate-500 text-center uppercase tracking-widest opacity-50">Terminal v.2.5 // Multimodal Core Active</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = ""; 
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animationFrame;
+
+        // Intro Transition
+        function enterExperience() {
+            document.getElementById('intro-overlay').style.opacity = '0';
+            document.getElementById('intro-overlay').style.visibility = 'hidden';
+            document.getElementById('mainLayout').classList.add('active');
+            
+            // Cinematic voice greeting
+            generateVoiceover("Nascav Systems Online. Ready for creation.");
+        }
+
+        // --- Cinematic Backdrop ---
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class DroneNode {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.alpha = Math.random();
+                this.velocity = Math.random() * 0.4 + 0.05;
+                this.drift = (Math.random() - 0.5) * 0.2;
+            }
+            update(time) {
+                this.y -= this.velocity;
+                this.x += this.drift;
+                if (this.y < -10) this.y = canvas.height + 10;
+                this.alpha = 0.1 + Math.abs(Math.sin(time * 0.0005 + this.x)) * 0.9;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.alpha > 0.8 ? '#38bdf8' : '#ffffff';
+                ctx.globalAlpha = this.alpha;
+                ctx.fill();
+            }
+        }
+
+        function startSimulation() {
+            particles = Array.from({length: 120}, () => new DroneNode());
+            function loop(time) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => { p.update(time); p.draw(); });
+                animationFrame = requestAnimationFrame(loop);
+            }
+            loop(0);
+        }
+
+        // --- AI Suite Functions ---
+
+        async function fetchWithRetry(url, options) {
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) throw new Error();
+                    return await response.json();
+                } catch (e) {
+                    if (i === 4) throw e;
+                    await new Promise(r => setTimeout(r, delays[i]));
+                }
+            }
+        }
+
+        function showStatus(text) {
+            const container = document.getElementById('outputContainer');
+            const out = document.getElementById('outputText');
+            container.classList.remove('hidden');
+            out.innerText = text;
+        }
+
+        async function generateFunFacts() {
+            const prompt = document.getElementById('conceptInput').value || "Drone light shows";
+            const btn = document.getElementById('factsBtn');
+            btn.disabled = true;
+            showStatus("✨ Scanning aeronautical database...");
+
+            try {
+                const result = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `Give me 3 mind-blowing fun facts about how drones could make this happen: ${prompt}. Make them sound high-tech and exciting.` }] }],
+                        systemInstruction: { parts: [{ text: "You are the Nascav AI Knowledge Core. Your tone is enthusiastic and scientific." }] }
+                    })
+                });
+                showStatus(result.candidates[0].content.parts[0].text);
+            } catch (e) {
+                showStatus("Error retrieving data.");
+            } finally { btn.disabled = false; }
+        }
+
+        async function generateSpecs() {
+            const prompt = document.getElementById('conceptInput').value || "Standard Drone Show";
+            const btn = document.getElementById('specsBtn');
+            btn.disabled = true;
+            showStatus("✨ Compiling technical hardware requirements...");
+
+            try {
+                const result = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `Provide a fictional but realistic set of technical specs for a show about: ${prompt}. Include drone count, battery life, LED brightness (nits), and GPS precision.` }] }],
+                        systemInstruction: { parts: [{ text: "You are the Lead Engineer at Nascav. You speak in precise technical details." }] }
+                    })
+                });
+                showStatus(result.candidates[0].content.parts[0].text);
+            } catch (e) {
+                showStatus("Telemetry error.");
+            } finally { btn.disabled = false; }
+        }
+
+        async function generateAdCopy() {
+            const prompt = document.getElementById('conceptInput').value || "Nascav Drone Show";
+            const btn = document.getElementById('copyBtn');
+            btn.disabled = true;
+            showStatus("✨ Crafting the pitch...");
+
+            try {
+                const result = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `Write a short, punchy marketing blurb to sell a drone show for: ${prompt}. Make it sound expensive, elite, and unforgettable.` }] }],
+                        systemInstruction: { parts: [{ text: "You are the Marketing Director at Nascav. Your style is luxury and visionary." }] }
+                    })
+                });
+                showStatus(result.candidates[0].content.parts[0].text);
+            } catch (e) {
+                showStatus("Communication error.");
+            } finally { btn.disabled = false; }
+        }
+
+        async function visualizeConcept() {
+            const prompt = document.getElementById('conceptInput').value || "A spectacular drone light show";
+            const btn = document.getElementById('vizBtn');
+            const statusText = document.getElementById('imageStatus');
+            const loader = document.getElementById('imageLoader');
+            const img = document.getElementById('generatedImg');
+
+            btn.disabled = true;
+            img.classList.add('hidden');
+            loader.classList.remove('hidden');
+            statusText.innerText = "Rendering sky visuals...";
+
+            try {
+                const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        instances: [{ prompt: `Cinematic professional photography of a drone light show in the night sky showing ${prompt}, thousands of glowing LED drones, high quality 8k, futuristic aesthetic, city skyline in background.` }],
+                        parameters: { sampleCount: 1 }
+                    })
+                });
+                const b64 = response.predictions[0].bytesBase64Encoded;
+                img.src = `data:image/png;base64,${b64}`;
+                img.classList.remove('hidden');
+                loader.classList.add('hidden');
+                statusText.classList.add('hidden');
+            } catch (e) {
+                statusText.innerText = "Visualization failed. Atmospheric interference.";
+                loader.classList.add('hidden');
+            } finally { btn.disabled = false; }
+        }
+
+        async function generateVoiceover(customText) {
+            const prompt = customText || document.getElementById('conceptInput').value || "the sky";
+            const btn = document.getElementById('voiceBtn');
+            btn.disabled = true;
+            if(!customText) showStatus("✨ Synthesizing narration...");
+
+            try {
+                const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `Say with deep cinematic gravitas: ${customText ? customText : 'Experience the future of spectacle. Nascav Lightworks presents: ' + prompt + '. Witness the impossible.'}` }] }],
+                        generationConfig: { 
+                            responseModalities: ["AUDIO"],
+                            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Charon" } } }
+                        }
+                    })
+                });
+                const pcmData = response.candidates[0].content.parts[0].inlineData.data;
+                playAudio(pcmData);
+            } catch (e) {
+                if(!customText) showStatus("Audio link failed.");
+            } finally { btn.disabled = false; }
+        }
+
+        function playAudio(base64) {
+            const binary = atob(base64);
+            const buffer = new Uint8Array(binary.length);
+            for(let i=0; i<binary.length; i++) buffer[i] = binary.charCodeAt(i);
+            const header = new ArrayBuffer(44);
+            const d = new DataView(header);
+            const s = (o, str) => { for(let i=0;i<str.length;i++) d.setUint8(o+i, str.charCodeAt(i)); };
+            s(0, 'RIFF'); d.setUint32(4, 36 + buffer.length, true); s(8, 'WAVE'); s(12, 'fmt ');
+            d.setUint32(16, 16, true); d.setUint16(20, 1, true); d.setUint16(22, 1, true);
+            d.setUint32(24, 24000, true); d.setUint32(28, 48000, true); d.setUint16(32, 2, true);
+            d.setUint16(34, 16, true); s(36, 'data'); d.setUint32(40, buffer.length, true);
+            const blob = new Blob([header, buffer], {type: 'audio/wav'});
+            new Audio(URL.createObjectURL(blob)).play();
+        }
+
+        window.onload = startSimulation;
+    </script>
+</body>
+</html>
